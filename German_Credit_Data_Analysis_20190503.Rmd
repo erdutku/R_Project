@@ -1,0 +1,287 @@
+---
+title: "German Credit Data Set Analysis"
+author: "Utku Erdogan"
+date: "May 8, 2018"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r include=FALSE}
+```
+
+####INDEX
+
+#####1.Introduction
+#####1.1 Purpose of Project
+#####2.Data
+#####2.1.Structure of Data
+#####2.2.Data Visualization
+#####2.3.Data Manipulation
+#####2.4.Data Analysis
+#####3.Model
+#####3.1.Insert Population
+#####3.2.Implementation Modelling
+#####3.3.Result of Modelling
+#####4.Result
+#####5.Resource
+
+
+
+####1.Introduction
+
+#####1.1 Purpose of Project
+
+German Credit dataset will be implemented logistic regression modelling which predict a target as "Good" and "Bad" on Kaggle website. Explanatory variables will be used in modelling. Methodology will be used Stepwise.
+
+####2.Data
+
+#####2.1.Structure of Data
+Structure of Data is analyzed via related function in R. It shows first 5 rows on below side. 
+
+
+```{r}
+library(knitr)
+kable(head(german_credit_data <- read.csv(file="C:/Users/U085461/Documents/R/Project/german_credit_data.csv")))
+```
+
+Changing name of first column
+
+```{r}
+names(german_credit_data)[1]<-"ID"
+```
+
+It shows structure of data
+
+```{r}
+class(german_credit_data)
+dim(german_credit_data)
+str(german_credit_data)
+summary(german_credit_data)
+```
+
+
+It shows null rows on data
+
+```{r}
+
+library(mice)
+library(lattice)
+
+md.pattern(german_credit_data)
+```
+
+522 rows is not null
+
+#####2.2.Data Visualization
+
+
+Numeric variables show distribution. The histograms show on below side
+
+```{r}
+german_credit_data_age<-hist(german_credit_data$Age,
+                             main="Histogram for Age", 
+                             xlab="Age", 
+                             border="blue", 
+                             col="green",
+                             prob = TRUE)
+lines(density(german_credit_data$Age))
+
+german_credit_data_credit.amount<-hist(german_credit_data$Credit.amount,
+                                       main="Histogram for Credit.amount", 
+                                       xlab="Credit.amount", 
+                                       border="blue", 
+                                       col="green",
+                                       prob = TRUE)
+lines(density(german_credit_data$Credit.amount)) 
+
+german_credit_data_duration<-hist(german_credit_data$Duration,
+                                  main="Histogram for Duration", 
+                                  xlab="Duration", 
+                                  border="blue", 
+                                  col="green",
+                                  prob = TRUE)
+lines(density(german_credit_data$Duration))
+
+```
+
+Categorical variables show with bar chart on below side
+
+```{r}
+barchart(table(german_credit_data$Sex), 
+         main="Sex Distribution", 
+         xlab="Number of Sex")
+
+barchart(table(german_credit_data$Housing), 
+         main="Housing Distribution", 
+         xlab="Number of Housing")
+
+barchart(table(german_credit_data$Saving.accounts), 
+         main="Saving.accounts Distribution", 
+         xlab="Number of Saving.accounts")
+
+barchart(table(german_credit_data$Purpose), 
+         main="Purpose Distribution", 
+         xlab="Number of Purpose")
+
+barchart(table(german_credit_data$Risk), 
+         main="Risk Distribution", 
+         xlab="Number of Risk")
+
+barchart(table(german_credit_data$Checking.account), 
+         main="Checking.account Distribution", 
+         xlab="Number of Checking.account")
+```
+```{r}
+```
+
+
+#####2.3.Data Manipulation
+
+Null rows exclude on dataset. First 5 rows show on below side 
+
+
+``` {r}
+library(dplyr)
+
+kable(head(df <- filter(german_credit_data,is.na(Checking.account))))
+
+kable(head(german_credit_data_v1 <- anti_join(german_credit_data,df,by="ID")))
+
+kable(head(df_1 <- filter(german_credit_data,is.na(Saving.accounts))))
+
+kable(head(german_credit_data_v2 <- anti_join(german_credit_data_v1,df_1,by="ID")))
+
+str(german_credit_data_v2)
+library(plyr)
+german_credit_data_v2$Risk<- revalue(german_credit_data_v2$Risk, c("bad"="1"))
+german_credit_data_v2$Risk<- revalue(german_credit_data_v2$Risk, c("good"="0"))
+```
+
+
+German_credit_data_v2 is last updated of data 
+
+#####2.4.Data Analysis
+######2.4.1.Correlation Analysis
+
+All numeric variables is done correlation analysis. When correlation value is greater than 0.75, this variable is excluded.  
+``` {r}
+library(corrplot)
+library(RColorBrewer)
+
+#correlation
+x <- cor(german_credit_data_v2[,unlist(lapply(german_credit_data_v2, is.numeric))])
+x
+#correlation visualization
+corrplot(x, type="upper", order="hclust",
+         col=brewer.pal(n=8, name="RdYlBu"))
+
+corrplot(x,type="lower")
+
+```
+
+
+####3.MODEL
+
+#####3.1.Insert Population
+
+Dataset will be divided  purpose which of train dataset is %70 and test dataset is %30    
+
+
+```{r}
+require(caTools) 
+set.seed(123) 
+sample = sample.split(german_credit_data_v2,SplitRatio = 0.70)
+train =subset(german_credit_data_v2,sample ==TRUE)
+test=subset(german_credit_data_v2, sample==FALSE)
+```
+
+#####3.2.Implementation Modelling
+
+It is set logistic regression modelling on cleaning dataset. Results show on below side.
+
+```{r}
+full<-glm(Risk~., family=binomial, data=train)
+summary(full)
+```
+
+When Vif values is greater than 2.5, this variable is excluded.  
+
+``` {r}
+#vif values
+car::vif(full)
+#ok
+```
+
+All Vif of values is lower than 2.5, so all variable is not excluded 
+
+If Pr(>|z|) values is above %0.05, this varible will be explanatory and selected  
+
+Selected variables;
+-Saving.accounts
+-Duration
+-Checking.account
+-Purpose
+
+It will be set modelling again on these variables 
+
+```{r}
+full1<-glm(Risk~Saving.accounts+Duration+Checking.account+Purpose, family=binomial, data=train)
+summary(full1)
+```
+
+```{r}
+full2<-glm(Risk~Saving.accounts+Duration+Checking.account+Purpose+Sex, family=binomial, data=train)
+summary(full2)
+```
+
+Alternative Modelling 1
+
+```{r}
+library(ROCR)
+
+p <- predict(full1, newdata=test, type="response")
+fitted.results <- predict(full1,newdata=test,type='response')
+fitted.results <- ifelse(fitted.results > 0.5,1,0)
+
+misClasificError <- mean(fitted.results != test$Risk)
+print(paste('Accuracy',1-misClasificError))
+
+```
+
+Alternative Modelling 2
+
+```{r}
+library(ROCR)
+
+p <- predict(full2, newdata=test, type="response")
+fitted.results <- predict(full2,newdata=test,type='response')
+fitted.results <- ifelse(fitted.results > 0.5,1,0)
+
+misClasificError <- mean(fitted.results != test$Risk)
+print(paste('Accuracy',1-misClasificError))
+
+```
+
+#####3.3.Result of Modelling
+    Result of modelling is analyzed which accuracy is under %50.  For using modelling accuracy must be above %50. 
+    When gender is added as variable on modelling, explanatory of modelling increases. In spite of incrasing explanatory of modelling, Alternative Model 1 is selected which is less variable 
+    
+
+    
+#####4.Result
+    First of all, German Credit Dataset is analyzed via R function from Kaggle website. Data is distributation analysis.After data visualization is done.
+    Secondly null rows is excluded from data. The data is divided as a train and test. Train dataset is modelling and train dataset is modelling for test.
+    Finally, Alternative Model 1 is selected. Accuracy is %38 so, Model is redevelopment another variable. Using variables were not explanatory not enough.  
+
+#####5.Resource
+https://www.kaggle.com/uciml/german-credit
+
+
+
+    
