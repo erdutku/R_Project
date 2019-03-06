@@ -1,2 +1,1 @@
-# R_Project
-R Project
+#This document includes R project which set linear regression. 
