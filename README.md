@@ -1,5 +1,5 @@
 #Index 
 
-#This document includes R project.
+##This document includes R project.
 
-##German Credit Dataset is downloaded on Kaggle website which sets Logictic Regression modelling.
+#1German Credit Dataset is downloaded on Kaggle website which sets Logictic Regression modelling.
