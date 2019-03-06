@@ -1,1 +1,1 @@
-#This document includes R project which set linear regression. 
+#This document includes R project which set logictic regression. 
